@@ -16,10 +16,11 @@ class Collinear_Kernel
    private:
       ParameterReader *paraRdr;
 
-      int npt_p_plus;
+      int npt_p_plus_1, npt_p_plus_2;
+      double *p_plus_pt_1, *wp_plus_1, *p_plus_pt_standard_1, *wp_plus_standard_1;
+      double *p_plus_pt_2, *wp_plus_2, *p_plus_pt_standard_2, *wp_plus_standard_2;
 
       int npt_ktilde;
-      double **fTilde;
       double *ktilde;
       double *rawRatetable;
 
@@ -34,7 +35,9 @@ class Collinear_Kernel
       void generateEmissionrateTable();
       void outputEmissionrateTable(string filename);
 
-      double SovleDiffeq(double ktilde, double p_plustilde);
+      void calRawEmissionTable();
+      double Integral_p_plus(double ktilde);
+      double SolveDiffeq(double ktilde, double p_plustilde);
       void calculateGluonselfEnergy(double q_0, double q, gluonSelfenergy* gluon_ptr);
 
       double fermiDistribution(double ptilde);

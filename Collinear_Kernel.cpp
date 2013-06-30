@@ -1,4 +1,5 @@
 #include<iostream>
+#include<iomanip>
 #include<sstream>
 #include<fstream>
 #include<cmath>
@@ -69,12 +70,13 @@ int Diffeq_Jacobian(double t, const double y[], double *dfdy, double dfdt[], voi
 
 Collinear_Kernel::Collinear_Kernel(ParameterReader* paraRdr_in)
 {
+    double eps = 1e-10;
     paraRdr = paraRdr_in;
 
     npt_k = paraRdr->getVal("npt_k");
     double kT_min = paraRdr->getVal("k_min");
     double kT_max = paraRdr->getVal("k_max");
-    double dkT = (kT_max - kT_min)/(npt_k-1);
+    double dkT = (kT_max - kT_min)/(npt_k - 1 + eps);
     kT = new double [npt_k];
     for(int i = 0; i < npt_k ; i++)
        kT[i] = kT_min + i*dkT;
@@ -82,7 +84,7 @@ Collinear_Kernel::Collinear_Kernel(ParameterReader* paraRdr_in)
     npt_T = paraRdr->getVal("npt_T");
     double T_min = paraRdr->getVal("T_min");
     double T_max = paraRdr->getVal("T_max");
-    double dT = (T_max - T_min)/(npt_T - 1);
+    double dT = (T_max - T_min)/(npt_T - 1 + eps);
     temperature = new double [npt_T];
     for(int i = 0; i < npt_T ; i++)
        temperature[i] = T_min + i*dT;
@@ -91,28 +93,32 @@ Collinear_Kernel::Collinear_Kernel(ParameterReader* paraRdr_in)
     for(int i = 0; i < npt_k ; i++)
        rateTable[i] = new double [npt_T];
 
+    npt_p_plus_1 = paraRdr->getVal("npt_p_plus_1");
+    p_plus_pt_1 = new double [npt_p_plus_1];
+    wp_plus_1 = new double [npt_p_plus_1];
+    p_plus_pt_standard_1 = new double [npt_p_plus_1];
+    wp_plus_standard_1 = new double [npt_p_plus_1];
+    gauss_quadrature_standard(npt_p_plus_1, 1, 0.0, 0.0, 0.0, 1.0, p_plus_pt_standard_1, wp_plus_standard_1);
+    npt_p_plus_2 = paraRdr->getVal("npt_p_plus_2");
+    p_plus_pt_2 = new double [npt_p_plus_2];
+    wp_plus_2 = new double [npt_p_plus_2];
+    p_plus_pt_standard_2 = new double [npt_p_plus_2];
+    wp_plus_standard_2 = new double [npt_p_plus_2];
+    gauss_quadrature_standard(npt_p_plus_2, 5, 0.0, 0.0, 0.0, 1.0, p_plus_pt_standard_2, wp_plus_standard_2);
+
     npt_ktilde = paraRdr->getVal("npt_ktilde"); 
+    rawRatetable = new double [npt_ktilde];
     double ktilde_min = paraRdr->getVal("ktilde_min");
     double ktilde_max = paraRdr->getVal("ktilde_max");
-    double dktilde = (ktilde_max - ktilde_min)/(npt_ktilde - 1);
-    fTilde = new double* [npt_ktilde];
+    double dktilde = (ktilde_max - ktilde_min)/(npt_ktilde - 1 + eps);
     ktilde = new double [npt_ktilde];
-    rawRatetable = new double [npt_ktilde];
-    
-    npt_p_plus = paraRdr->getVal("npt_p_plus");
     for(int i = 0; i < npt_ktilde ; i++)
-    {
-       fTilde[i] = new double [npt_p_plus];
        ktilde[i] = ktilde_min + i*dktilde;
-    }
 }
 
 Collinear_Kernel::~Collinear_Kernel()
 {
-    for(int i = 0; i < npt_ktilde; i++)
-       delete [] fTilde[i];
     delete [] ktilde;
-    delete [] fTilde;
     delete [] rawRatetable;
     
     delete [] kT;
@@ -120,11 +126,20 @@ Collinear_Kernel::~Collinear_Kernel()
     for(int i = 0; i < npt_k; i++)
        delete [] rateTable[i];
     delete [] rateTable;
+
+    delete [] p_plus_pt_1;
+    delete [] wp_plus_1;
+    delete [] p_plus_pt_standard_1;
+    delete [] wp_plus_standard_1;
+    delete [] p_plus_pt_2;
+    delete [] wp_plus_2;
+    delete [] p_plus_pt_standard_2;
+    delete [] wp_plus_standard_2;
 }
 
 void Collinear_Kernel::generateEmissionrateTable()
 {
-    Physicalconstants physconst;
+    Physicalconstants physconst(paraRdr);
     double alpha_EM = physconst.get_alphaEM();
     double C_F = physconst.get_C_F();
     double q_sq = physconst.get_q_sq();
@@ -146,25 +161,85 @@ void Collinear_Kernel::generateEmissionrateTable()
 
 void Collinear_Kernel::outputEmissionrateTable(string filename)
 {
-    ofstream of;
-    of.open(filename.c_str());
-    for(int i = 0; i < npt_T; i++)
-    {
-       for(int j = 0; j < npt_k; j++)
-          of << scientific << setw(20) << setprecision(8)
-             << rateTable[j][i] << "   ";
-       of << endl;
-    }
-    of.close();
+   ofstream of;
+   of.open(filename.c_str());
+   for(int i = 0; i < npt_T; i++)
+   {
+      for(int j = 0; j < npt_k; j++)
+         of << scientific << setw(20) << setprecision(8)
+            << rateTable[j][i] << "   ";
+      of << endl;
+   }
+   of.close();
 }
 
-
-double Collinear_Kernel::SovleDiffeq(double ktilde, double p_plustilde)
+void Collinear_Kernel::calRawEmissionTable()
 {
-   Physicalconstants Phycons;
+   for(int i = 0; i < npt_ktilde; i++)
+   {
+      rawRatetable[i] = 2.*Integral_p_plus(ktilde[i]);
+      double f0_k = fermiDistribution(ktilde[i]);
+      cout << setprecision(8) << scientific << setw(15)
+           << ktilde[i] << "   " << rawRatetable[i]/f0_k << endl;
+   }
+}
+
+double Collinear_Kernel::Integral_p_plus(double ktilde)
+{
+   double p_plus_min_1 = - ktilde/2.;
+   double p_plus_max_1 = 5.0;
+   double p_plus_min_2 = p_plus_max_1;
+   for(int i = 0; i < npt_p_plus_1; i++)
+   {
+      p_plus_pt_1[i] = p_plus_pt_standard_1[i];
+      wp_plus_1[i] = wp_plus_standard_1[i];
+   }
+   scale_gausspoints(npt_p_plus_1, 1, 0.0, 0.0, p_plus_min_1, p_plus_max_1, p_plus_pt_1, wp_plus_1);
+   for(int i = 0; i < npt_p_plus_2; i++)
+   {
+      p_plus_pt_2[i] = p_plus_pt_standard_2[i];
+      wp_plus_2[i] = wp_plus_standard_2[i];
+   }
+   double slope = 2.0;
+   scale_gausspoints(npt_p_plus_2, 5, 0.0, 0.0, p_plus_min_2, slope, p_plus_pt_2, wp_plus_2);
+   double result = 0.0;
+   for(int i = 0; i < npt_p_plus_1; i++)
+   {
+      double p_plus = p_plus_pt_1[i];
+      double prefactor = (p_plus*p_plus + (p_plus + ktilde)*(p_plus + ktilde))/(p_plus*p_plus*(p_plus + ktilde)*(p_plus + ktilde));
+
+      double f0_in = fermiDistribution(p_plus + ktilde);
+      double f0_out = fermiDistribution(p_plus);
+      double dis_factor = f0_in*(1. - f0_out);
+
+      double fTilde = SolveDiffeq(ktilde, p_plus);
+
+      double integrand = prefactor*dis_factor*fTilde;
+      result += integrand*wp_plus_1[i];
+   }
+   for(int i = 0; i < npt_p_plus_2; i++)
+   {
+      double p_plus = p_plus_pt_2[i];
+      double prefactor = (p_plus*p_plus + (p_plus + ktilde)*(p_plus + ktilde))/(p_plus*p_plus*(p_plus + ktilde)*(p_plus + ktilde));
+
+      double f0_in = fermiDistribution(p_plus + ktilde);
+      double f0_out = fermiDistribution(p_plus);
+      double dis_factor = f0_in*(1. - f0_out);
+
+      double fTilde = SolveDiffeq(ktilde, p_plus);
+
+      double integrand = prefactor*dis_factor*fTilde;
+      result += integrand*wp_plus_2[i];
+   }
+   return(result);
+}
+
+double Collinear_Kernel::SolveDiffeq(double ktilde, double p_plustilde)
+{
+   Physicalconstants Phycons(paraRdr);
    double C_F = Phycons.get_C_F();
    double N_C = Phycons.get_N_c();
-   double N_F = 3.0;
+   double N_F = Phycons.get_N_F();
    double kappa = 3.*C_F/(4.*(N_C + N_F/2.));
    double *params = new double [3];
    params[0] = kappa;
@@ -178,7 +253,7 @@ double Collinear_Kernel::SovleDiffeq(double ktilde, double p_plustilde)
    double t = -5.0;
    double y[4] = {0.01, 0.01, -0.1, -0.1};
 
-   double t_end[2] = {-5e-3, -5e-4};
+   double t_end[2] = {-5e-4, -1e-4};
    double Re_h[2], Im_h[2];
    
    for(int i = 0; i < 2; i++)
@@ -206,7 +281,7 @@ double Collinear_Kernel::SovleDiffeq(double ktilde, double p_plustilde)
    double Re_C2 = (Re_h[1]*A_11 - Re_h[0]*A_21)/denominator;
    double Im_C2 = (Im_h[1]*A_11 - Im_h[0]*A_21)/denominator;
 
-   double result = 2./M_PI*params[1]*kappa*(Re_C1*Im_C2 - Im_C1*Re_C2)/(Re_C1*Re_C1 + Im_C1*Im_C1);
+   double result = 1./(4.*kappa)*2./M_PI*params[1]*kappa*(Re_C1*Im_C2 - Im_C1*Re_C2)/(Re_C1*Re_C1 + Im_C1*Im_C1);
    delete [] params;
    return(result);
 }
