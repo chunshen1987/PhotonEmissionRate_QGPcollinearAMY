@@ -171,9 +171,10 @@ double Collinear_Kernel::SovleDiffeq(double ktilde, double p_plustilde)
    params[1] = 2.*p_plustilde*(p_plustilde + ktilde)/ktilde;
    gsl_odeiv2_system sys = {Diffeq_functions, Diffeq_Jacobian, 4, params};
 
-   gsl_odeiv2_driver * d = 
-   gsl_odeiv2_driver_alloc_y_new (&sys, gsl_odeiv2_step_rk8pd,
-       			  1e-4, 0.0, 1e-6);
+   double relerr = 1e-8;
+   double abserr = 0.0;
+   double hstart = 1e-4;
+   gsl_odeiv2_driver * d = gsl_odeiv2_driver_alloc_y_new (&sys, gsl_odeiv2_step_rk8pd, hstart, abserr, relerr);
    double t = -5.0;
    double y[4] = {0.01, 0.01, -0.1, -0.1};
 

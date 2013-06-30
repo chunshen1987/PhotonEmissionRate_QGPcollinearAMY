@@ -25,7 +25,8 @@ int main(int argc, char** argv)
    
    Collinear_Kernel test(paraRdr);
    //Collinear emission
-   test.SovleDiffeq(10.0, -12.0);
+   double result = test.SovleDiffeq(2.0, 2.0);
+   cout << result << endl;
 
    sw.toc();
    cout << "totally takes : " << sw.takeTime() << "sec." << endl;

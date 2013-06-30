@@ -34,7 +34,7 @@ class Collinear_Kernel
       void generateEmissionrateTable();
       void outputEmissionrateTable(string filename);
 
-      void SovleDiffeq(double ktilde, double p_plustilde);
+      double SovleDiffeq(double ktilde, double p_plustilde);
       void calculateGluonselfEnergy(double q_0, double q, gluonSelfenergy* gluon_ptr);
 
       double fermiDistribution(double ptilde);
