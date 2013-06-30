@@ -159,7 +159,7 @@ void Collinear_Kernel::outputEmissionrateTable(string filename)
 }
 
 
-void Collinear_Kernel::SovleDiffeq(double ktilde, double p_plustilde)
+double Collinear_Kernel::SovleDiffeq(double ktilde, double p_plustilde)
 {
    Physicalconstants Phycons;
    double C_F = Phycons.get_C_F();
@@ -176,19 +176,38 @@ void Collinear_Kernel::SovleDiffeq(double ktilde, double p_plustilde)
        			  1e-4, 0.0, 1e-6);
    double t = -5.0;
    double y[4] = {0.01, 0.01, -0.1, -0.1};
- 
-   for(int i = 0; i < 10; i++)
+
+   double t_end[2] = {-5e-3, -5e-4};
+   double Re_h[2], Im_h[2];
+   
+   for(int i = 0; i < 2; i++)
    {
-      double t_end = -0.01 + 0.001*i;
-      int status = gsl_odeiv2_driver_apply (d, &t, t_end, y);
+      int status = gsl_odeiv2_driver_apply (d, &t, t_end[i], y);
       if(status != GSL_SUCCESS)
       {
          cout << "ODE solver error!" << endl;
          exit(1);
       }
-      printf ("%.5e %.5e %.5e %.5e %.5e\n", -t, y[0], y[1], y[2], y[3]);
+      //printf ("%.5e %.5e %.5e %.5e %.5e\n", -t, y[0], y[1], y[2], y[3]);
+      Re_h[i] = y[0];
+      Im_h[i] = y[1];
    }
+   double temp = -sqrt(kappa)*t_end[0];
+   double A_11 = - gsl_sf_bessel_K1(temp)/temp;
+   double A_12 = - gsl_sf_bessel_I1(temp)/temp;
+   temp = -sqrt(kappa)*t_end[1];
+   double A_21 = - gsl_sf_bessel_K1(temp)/temp;
+   double A_22 = - gsl_sf_bessel_I1(temp)/temp;
+
+   double denominator = A_11*A_22 - A_21*A_12;
+   double Re_C1 = (Re_h[0]*A_22 - Re_h[1]*A_12)/denominator;
+   double Im_C1 = (Im_h[0]*A_22 - Im_h[1]*A_12)/denominator;
+   double Re_C2 = (Re_h[1]*A_11 - Re_h[0]*A_21)/denominator;
+   double Im_C2 = (Im_h[1]*A_11 - Im_h[0]*A_21)/denominator;
+
+   double result = 2./M_PI*params[1]*kappa*(Re_C1*Im_C2 - Im_C1*Re_C2)/(Re_C1*Re_C1 + Im_C1*Im_C1);
    delete [] params;
+   return(result);
 }
 
 void Collinear_Kernel::calculateGluonselfEnergy(double q_0, double q, gluonSelfenergy* gluon_ptr)
