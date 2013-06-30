@@ -1,0 +1,33 @@
+Nr = 16           # dimension of functional basis for real part
+Ni = 16           # dimension of functional basis for imaginary part
+Npt_A = 10         # number of points for parameter A in the functional basis
+
+N_flavor = 2      # number of flavors
+
+npt_k = 81        # number of points for photon momentum in the final output photon rate table
+k_min = 0.05      # minimum value of the photon momentum in the final output photon rate table
+k_max = 4.0       # maximum value of the photon momentum in the finale output photon rate table
+
+npt_T = 351        # number of points for temperature in the final output photon rate table
+T_min = 0.1       # minimum value of the temperature in the final output photon rate table
+T_max = 0.8       # maximum value of the temperature in the final output photon rate table
+
+npt_ktilde = 200        # number of points for k/T in the raw photon table
+ktilde_min = 0.2        # minimum value for k/T in the raw photon table
+ktilde_max = 50         # maximum value for k/T in the raw photon table
+
+npt_p_plus = 100     # number of points for p_parallel integral in the rate equation
+p_parallel_max = 50.0   # upper bound of q_parallel integral in the rate equation
+
+npt_p_perp = 50   # number of points for Ip integral
+p_perp_min = 0.0  # lower bound of the p_perp integral in Ip
+p_perp_max = 50.0 # upper bound of the p_perp integral in Ip
+
+npt_q_parallel = 50     # number of integration points for Ctilde integral
+
+nphi = 50         # number of points for Ip integral
+npt_q_perp = 50   # number of points for q_perp integral in tildeC_mn
+q_perp_min = 0.0    # lower bound of q_perp integral in tildeC_mn integral
+q_perp_max = 50.0   # upper bound of q_perp integral in tildeC_mn integral
+
+
