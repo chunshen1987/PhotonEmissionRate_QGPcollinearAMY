@@ -156,7 +156,7 @@ void Collinear_Kernel::generateEmissionrateTable()
 
     for(int i = 0; i < npt_T; i++)
     {
-       double m_inf_sq = C_F*g_s/4.*temperature[i]*temperature[i];
+       double m_inf_sq = C_F*g_s*g_s/4.*temperature[i]*temperature[i];
        double prefactor = 2.*alpha_EM*(3*q_sq)*m_inf_sq/pow(2*M_PI, 3);
        for(int j = 0; j < npt_k; j++)
        {

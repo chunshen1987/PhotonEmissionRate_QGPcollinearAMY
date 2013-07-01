@@ -27,10 +27,6 @@ int main(int argc, char** argv)
    //Collinear emission
    string filename = "CollinearLPM";
    test.calculatePhotonEmissionRates(filename);
-   test.calRawEmissionTable();
-   //double result = test.SolveDiffeq(50.0, -25.0);
-   //cout << result << endl;
-   //test.calRawEmissionTable();
 
    sw.toc();
    cout << "totally takes : " << sw.takeTime() << "sec." << endl;
