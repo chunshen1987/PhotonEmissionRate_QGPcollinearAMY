@@ -15,7 +15,6 @@
 #include "Collinear_Kernel.h"
 #include "ParameterReader.h"
 #include "Arsenal.h"
-#include "Physicalconstants.h"
 
 using namespace std;
 
@@ -23,7 +22,6 @@ const double gammaEuler = 0.5772156649;
 
 int Diffeq_functions(double t, const double y[], double f[], void *params)
 {
-   //double gammaEuler = 0.577216;
    double kappa = ((double *)params)[0];
    double coeff = ((double *)params)[1];
    double K0 = gsl_sf_bessel_K0(-t);
@@ -37,7 +35,6 @@ int Diffeq_functions(double t, const double y[], double f[], void *params)
 
 int Diffeq_Jacobian(double t, const double y[], double *dfdy, double dfdt[], void *params)
 {
-   //double gammaEuler = 0.577216;
    double kappa = ((double *)params)[0];
    double coeff = ((double *)params)[1];
    double K0 = gsl_sf_bessel_K0(-t);
@@ -74,6 +71,8 @@ Collinear_Kernel::Collinear_Kernel(ParameterReader* paraRdr_in)
 {
     double eps = 1e-10;
     paraRdr = paraRdr_in;
+
+    Phycons = new Physicalconstants (paraRdr);
 
     npt_k = paraRdr->getVal("npt_k");
     double kT_min = paraRdr->getVal("k_min");
@@ -120,6 +119,7 @@ Collinear_Kernel::Collinear_Kernel(ParameterReader* paraRdr_in)
 
 Collinear_Kernel::~Collinear_Kernel()
 {
+    delete Phycons;
     delete [] ktilde;
     delete [] rawRatetable;
     
@@ -238,10 +238,9 @@ double Collinear_Kernel::Integral_p_plus(double ktilde)
 
 double Collinear_Kernel::SolveDiffeq(double ktilde, double p_plustilde)
 {
-   Physicalconstants Phycons(paraRdr);
-   double C_F = Phycons.get_C_F();
-   double N_C = Phycons.get_N_c();
-   double N_F = Phycons.get_N_F();
+   double C_F = Phycons->get_C_F();
+   double N_C = Phycons->get_N_c();
+   double N_F = Phycons->get_N_F();
    double kappa = 3.*C_F/(4.*(N_C + N_F/2.));
    double *params = new double [2];
    params[0] = kappa;
@@ -252,10 +251,9 @@ double Collinear_Kernel::SolveDiffeq(double ktilde, double p_plustilde)
    double abserr = 0.0;
    double hstart = 1e-4;
    gsl_odeiv2_driver * d = gsl_odeiv2_driver_alloc_y_new (&sys, gsl_odeiv2_step_rk8pd, hstart, abserr, relerr);
-   double t = -30.0;
+   double t = -15.0;
 
    //determine the initial conditions for ODE
-   //double gammaEuler = 0.577216;
    double tempA = kappa;
    double tempB = params[1]*4*kappa/(2.*M_PI)*(gammaEuler + log(-t/2.));
    double tempMag = pow(tempA*tempA + tempB*tempB, 0.25);

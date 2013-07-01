@@ -9,7 +9,7 @@ T_min = 0.1       # minimum value of the temperature in the final output photon 
 T_max = 0.8       # maximum value of the temperature in the final output photon rate table
 
 npt_ktilde = 1        # number of points for k/T in the raw photon table
-ktilde_min = 10        # minimum value for k/T in the raw photon table
+ktilde_min = 1        # minimum value for k/T in the raw photon table
 ktilde_max = 50         # maximum value for k/T in the raw photon table
 
 npt_p_plus_1 = 40     # number of points for p_parallel integral in the rate equation

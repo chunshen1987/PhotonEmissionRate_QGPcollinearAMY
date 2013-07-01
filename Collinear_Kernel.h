@@ -2,6 +2,7 @@
 #define Collinear_Kernel_h
 
 #include "ParameterReader.h"
+#include "Physicalconstants.h"
 
 struct gluonSelfenergy
 {
@@ -15,6 +16,8 @@ class Collinear_Kernel
 {
    private:
       ParameterReader *paraRdr;
+
+      Physicalconstants *Phycons;
 
       int npt_p_plus_1, npt_p_plus_2;
       double *p_plus_pt_1, *wp_plus_1, *p_plus_pt_standard_1, *wp_plus_standard_1;
