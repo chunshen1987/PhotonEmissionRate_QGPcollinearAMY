@@ -19,9 +19,11 @@
 
 using namespace std;
 
+const double gammaEuler = 0.5772156649;
+
 int Diffeq_functions(double t, const double y[], double f[], void *params)
 {
-   double gammaEuler = 0.577216;
+   //double gammaEuler = 0.577216;
    double kappa = ((double *)params)[0];
    double coeff = ((double *)params)[1];
    double K0 = gsl_sf_bessel_K0(-t);
@@ -35,7 +37,7 @@ int Diffeq_functions(double t, const double y[], double f[], void *params)
 
 int Diffeq_Jacobian(double t, const double y[], double *dfdy, double dfdt[], void *params)
 {
-   double gammaEuler = 0.577216;
+   //double gammaEuler = 0.577216;
    double kappa = ((double *)params)[0];
    double coeff = ((double *)params)[1];
    double K0 = gsl_sf_bessel_K0(-t);
@@ -241,7 +243,7 @@ double Collinear_Kernel::SolveDiffeq(double ktilde, double p_plustilde)
    double N_C = Phycons.get_N_c();
    double N_F = Phycons.get_N_F();
    double kappa = 3.*C_F/(4.*(N_C + N_F/2.));
-   double *params = new double [3];
+   double *params = new double [2];
    params[0] = kappa;
    params[1] = 2.*p_plustilde*(p_plustilde + ktilde)/ktilde;
    gsl_odeiv2_system sys = {Diffeq_functions, Diffeq_Jacobian, 4, params};
@@ -250,10 +252,36 @@ double Collinear_Kernel::SolveDiffeq(double ktilde, double p_plustilde)
    double abserr = 0.0;
    double hstart = 1e-4;
    gsl_odeiv2_driver * d = gsl_odeiv2_driver_alloc_y_new (&sys, gsl_odeiv2_step_rk8pd, hstart, abserr, relerr);
-   double t = -5.0;
-   double y[4] = {0.01, 0.01, -0.1, -0.1};
+   double t = -30.0;
 
-   double t_end[2] = {-5e-4, -1e-4};
+   //determine the initial conditions for ODE
+   //double gammaEuler = 0.577216;
+   double tempA = kappa;
+   double tempB = params[1]*4*kappa/(2.*M_PI)*(gammaEuler + log(-t/2.));
+   double tempMag = pow(tempA*tempA + tempB*tempB, 0.25);
+   double tempphi = atan2(-tempB, tempA);
+   double Relambda, Imlambda;
+   if(cos(tempphi) > 0)
+   {
+      Relambda = - tempMag*cos(tempphi);
+      Imlambda = - tempMag*sin(tempphi);
+   }
+   else
+   {
+      Relambda = tempMag*cos(tempphi);
+      Imlambda = tempMag*sin(tempphi);
+   }
+   tempMag = exp(Relambda*(-t));
+   double cos_B = cos(Imlambda*(-t));
+   double sin_B = sin(Imlambda*(-t));
+   double Reh_initial = tempMag*cos_B;
+   double Imh_initial = tempMag*sin_B;
+   double Redhdt_initial = -tempMag*(Relambda*cos_B - Imlambda*sin_B);
+   double Imdhdt_initial = -tempMag*(Relambda*sin_B + Imlambda*cos_B);
+
+   double y[4] = {Reh_initial, Imh_initial, Redhdt_initial, Imdhdt_initial};
+
+   double t_end[2] = {-5e-4, -2e-4};
    double Re_h[2], Im_h[2];
    
    for(int i = 0; i < 2; i++)
