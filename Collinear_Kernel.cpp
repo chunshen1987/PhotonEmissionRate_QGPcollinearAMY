@@ -90,9 +90,9 @@ Collinear_Kernel::Collinear_Kernel(ParameterReader* paraRdr_in)
     for(int i = 0; i < npt_T ; i++)
        temperature[i] = T_min + i*dT;
         
-    rateTable = new double* [npt_k];
+    eqrate_Table = new double* [npt_k];
     for(int i = 0; i < npt_k ; i++)
-       rateTable[i] = new double [npt_T];
+       eqrate_Table[i] = new double [npt_T];
 
     npt_p_plus_1 = paraRdr->getVal("npt_p_plus_1");
     p_plus_pt_1 = new double [npt_p_plus_1];
@@ -108,7 +108,7 @@ Collinear_Kernel::Collinear_Kernel(ParameterReader* paraRdr_in)
     gauss_quadrature_standard(npt_p_plus_2, 5, 0.0, 0.0, 0.0, 1.0, p_plus_pt_standard_2, wp_plus_standard_2);
 
     npt_ktilde = paraRdr->getVal("npt_ktilde"); 
-    rawRatetable = new double [npt_ktilde];
+    raweqRatetable = new double [npt_ktilde];
     double ktilde_min = paraRdr->getVal("ktilde_min");
     double ktilde_max = paraRdr->getVal("ktilde_max");
     double dktilde = (ktilde_max - ktilde_min)/(npt_ktilde - 1 + eps);
@@ -121,13 +121,13 @@ Collinear_Kernel::~Collinear_Kernel()
 {
     delete Phycons;
     delete [] ktilde;
-    delete [] rawRatetable;
+    delete [] raweqRatetable;
     
     delete [] kT;
     delete [] temperature;
     for(int i = 0; i < npt_k; i++)
-       delete [] rateTable[i];
-    delete [] rateTable;
+       delete [] eqrate_Table[i];
+    delete [] eqrate_Table;
 
     delete [] p_plus_pt_1;
     delete [] wp_plus_1;
@@ -137,6 +137,13 @@ Collinear_Kernel::~Collinear_Kernel()
     delete [] wp_plus_2;
     delete [] p_plus_pt_standard_2;
     delete [] wp_plus_standard_2;
+}
+
+void Collinear_Kernel::calculatePhotonEmissionRates(string filename)
+{
+    calRawEmissionTable();
+    generateEmissionrateTable();
+    outputEmissionrateTable(filename);
 }
 
 void Collinear_Kernel::generateEmissionrateTable()
@@ -155,34 +162,36 @@ void Collinear_Kernel::generateEmissionrateTable()
        {
            double var = kT[j]/temperature[i];
            double result;
-           interpolation1D_linear(ktilde, rawRatetable, &var, &result, npt_ktilde, 1);
-           rateTable[j][i] = result*prefactor;
+           interpolation1D_linear(ktilde, raweqRatetable, &var, &result, npt_ktilde, 1);
+           eqrate_Table[j][i] = result*prefactor;
        }
     }
 }
 
 void Collinear_Kernel::outputEmissionrateTable(string filename)
 {
-   ofstream of;
-   of.open(filename.c_str());
+   ostringstream output_file_eqrate;
+   output_file_eqrate << "rate_" << filename << "_eqrate.dat";
+   ofstream of_eqrate;
+   of_eqrate.open(output_file_eqrate.str().c_str());
    for(int i = 0; i < npt_T; i++)
    {
       for(int j = 0; j < npt_k; j++)
-         of << scientific << setw(20) << setprecision(8)
-            << rateTable[j][i] << "   ";
-      of << endl;
+         of_eqrate << scientific << setw(20) << setprecision(8)
+            << eqrate_Table[j][i] << "   ";
+      of_eqrate << endl;
    }
-   of.close();
+   of_eqrate.close();
 }
 
 void Collinear_Kernel::calRawEmissionTable()
 {
    for(int i = 0; i < npt_ktilde; i++)
    {
-      rawRatetable[i] = 2.*Integral_p_plus(ktilde[i]);
+      raweqRatetable[i] = 2.*Integral_p_plus(ktilde[i]);
       double f0_k = fermiDistribution(ktilde[i]);
       cout << setprecision(8) << scientific << setw(15)
-           << ktilde[i] << "   " << rawRatetable[i]/f0_k << endl;
+           << ktilde[i] << "   " << raweqRatetable[i]/f0_k << endl;
    }
 }
 

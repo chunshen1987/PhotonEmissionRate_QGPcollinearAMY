@@ -25,16 +25,17 @@ class Collinear_Kernel
 
       int npt_ktilde;
       double *ktilde;
-      double *rawRatetable;
+      double *raweqRatetable;
 
       int npt_k, npt_T;
       double *kT, *temperature;
-      double **rateTable;
+      double **eqrate_Table;
 
    public:
       Collinear_Kernel(ParameterReader* paraRdr_in);
       ~Collinear_Kernel();
 
+      void calculatePhotonEmissionRates(string filename);
       void generateEmissionrateTable();
       void outputEmissionrateTable(string filename);
 

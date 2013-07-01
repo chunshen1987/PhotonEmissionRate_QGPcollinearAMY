@@ -25,6 +25,8 @@ int main(int argc, char** argv)
    
    Collinear_Kernel test(paraRdr);
    //Collinear emission
+   string filename = "CollinearLPM";
+   test.calculatePhotonEmissionRates(filename);
    test.calRawEmissionTable();
    //double result = test.SolveDiffeq(50.0, -25.0);
    //cout << result << endl;
